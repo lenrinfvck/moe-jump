@@ -1,0 +1,16 @@
+@import (less) './myStyle/reset.css';
+
+html {
+    font-size: 625%;
+}
+html,
+body {
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+//背景方式添加自适应图片
+.h5bg(@url) {
+    background: url('../img/@{url}') center no-repeat;
+    background-size: 100% 100%;
+}
