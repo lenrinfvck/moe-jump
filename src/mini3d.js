@@ -1,4 +1,4 @@
-import 'lib/pixi.js';
+import 'PIXI';
 
 let Container3d = function() {
     this.view = new PIXI.DisplayObjectContainer; 

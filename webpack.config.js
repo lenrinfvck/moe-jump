@@ -62,7 +62,8 @@ module.exports = {
     },
     externals: {
         //'jquery': 'jQuery',
-        zepto: 'Zepto',
+        PIXI: 'PIXI',
+        zepto: 'Zepto'
     },
     // 开启source-map，webpack有多种source-map，在官网文档可以查到
     devtool: '#source-map'

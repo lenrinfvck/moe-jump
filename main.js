@@ -5,7 +5,7 @@
 import 'style/main.less';
 
 // import 'myLib/rem.module.js';
-import 'lib/pixi.js';
+import 'PIXI';
 import mini3d from 'src/mini3d.js';
 import Unit from 'src/unit.js';
 
