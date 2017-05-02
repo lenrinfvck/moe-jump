@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "for normal html5",
   "scripts": {
-    "dev": "webpack-dev-server --hot --inline",
+    "dev": "webpack-dev-server --hot --inline --port 2333",
     "build": "webpack -p"
   },
   "repository": {

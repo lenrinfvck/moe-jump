@@ -6,6 +6,7 @@ import 'style/main.less';
 
 // import 'myLib/rem.module.js';
 import 'createjs';
+import Loader from 'src/loadStorage.js';
 // import mini3d from 'src/mini3d.js';
 import Unit from 'src/unit.js';
 import manifest from 'src/loader_manifest.json';
@@ -14,47 +15,50 @@ import manifest from 'src/loader_manifest.json';
 // let stage = new PIXI.Container();
 let resources;
 let stage = new createjs.StageGL('moe-stage');
-let loader = new createjs.LoadQueue(false);
+
+
+(function() {
+    let stageTest = new createjs.Stage('moe-test');
+    let text = new createjs.Text('0000', '20px Arial', '#ffffff');
+    text.x = 100;
+    text.y = 200;
+    stageTest.addChild(text);
+    createjs.Ticker.on('tick', stageTest);
+})();
+
+let loader = new Loader(false);
 
 // let con3d = new mini3d.Container3d();
 // let con = new PIXI.Container;
 // let resources = PIXI.loader.resources;
 let game, player;
 
-
 // document.body.appendChild(renderer.view);
 // renderer.autoResize = true;
 // renderer.resize(window.innerWidth, window.innerHeight);
 
-loader.addEventListener('fileload', updateLoadStorage);
 loader.addEventListener('complete', init);
 loader.loadManifest(manifest);
+// for debug
 window.loader = loader;
+window.stage = stage;
 /*PIXI.loader
     .add('qibi', './img/qibi.png')
     .add('box', './img/box.png')
     .load(init);*/
-function updateLoadStorage(evt) {
-    if(!createjs) {
-        return;
-    }
-    createjs.loadStorage || (createjs.loadStorage = {});
-    if(evt.item.type == 'image') {
-        createjs.loadStorage.images || (createjs.loadStorage.images = {});
-        createjs.loadStorage.images[evt.item.id] = evt.result;
-    }
-}
 
-class Player extends createjs.Sprite {
+class Player extends createjs.Sprite{
     constructor(texture) {
         let spriteSheet = new createjs.SpriteSheet(texture);
         super(spriteSheet, 'run');
-        this.animeSpeed = 1;
-        this.width = texture.frames.width;
-        this.height = texture.frames.height;
+        this.width = texture.frames.width * 0.5;
+        this.height = texture.frames.height * 0.5;
+        this.hitW = 36;
+        this.htiH = 100;
+        this.scaleY = 0.5;
         this.vy = 0;
         this.regX = this.width;
-        this.scaleX = -1;
+        this.scaleX = -0.5;
         this.maxJump = 150;
         this.state = 'run';
         this.oriY = this.y;
@@ -65,6 +69,7 @@ class Player extends createjs.Sprite {
             this.state = 'jumpUp';
             this.vy = -this.maxJump / 10;
             this.oriY = this.y;
+            this.stop();
         }
     }
     update() {
@@ -80,6 +85,7 @@ class Player extends createjs.Sprite {
         if(this.state === 'jumpUp' && resY <= this.oriY - this.maxJump) {
             this.state = 'jumpDown';
             this.vy = -this.vy;
+            this.play();
         }else if(this.state === 'jumpDown' && resY >= this.oriY) {
             this.state = 'run';
             this.vy = 0;
@@ -95,8 +101,8 @@ class Obstacle extends createjs.Bitmap {
         this.height = texture.height;
         this.x = stage.width + 500 * Math.random();
         this.y = game.baseline - this.height;
-        if(game.level >= 1) {
-            Math.random() > 0.9 && (this.y -= 150);
+        if(game.level >= 0) {
+            Math.random() > 0.9 && (this.y -= 200);
         }
         this.vx = game.globalSpeed || 1;
     }
@@ -109,10 +115,10 @@ class Obstacle extends createjs.Bitmap {
     }
 }
 class Game {
-    constructor(con, player) {
+    constructor(stage, player) {
         this.player = player;
         // this.con3d = con3d;
-        this.con = con;
+        this.stage = stage;
         this.state = 'ready';
         this.globalSpeed = 10;
         this.baseline = stage.height - 60;
@@ -121,26 +127,28 @@ class Game {
         this.point = 0;
         this.level = 0;
         this.levelPoint = [10000, 15000, 30000, 40000];
-        this.pointText = new createjs.Text('0000', '16px Arial', 'white');
+        this.pointText = new createjs.Text('0000', '20px Arial', '#ffffff');
         this.pointText.x = stage.width - 100;
         this.pointText.y = 20;
-        this.con.addChild(this.pointText);
+        this.stage.addChild(this.pointText);
     }
 
     play() {
         var _this = this;
         this.obstacles.forEach(function(item) {
-            _this.con.removeChild(item);
+            _this.stage.removeChild(item);
         });
         this.obstacles = [];
         this.point = 0;
         this.level = 0;
         this.pointText.text = '0000';
         this.state = 'playing';
+        this.player.play();
     }
 
     over() {
         this.state = 'over';
+        this.player.stop();
         console.log('over');
     }
 
@@ -174,7 +182,7 @@ class Game {
     //添加障碍物
     addObstacle() {
         let cur = new Obstacle(resources['box'], this);
-        stage.addChild(cur);
+        this.stage.addChild(cur);
         this.obstacles.push(cur);
     }
 
@@ -199,7 +207,7 @@ function init() {
         animations: {
             run: [0, 16]
         },
-        framerate: 10
+        framerate: 20
     });
     stage.width = stage.canvas.width;
     stage.height = stage.canvas.height;
@@ -214,24 +222,18 @@ function init() {
         game.play();
     })
     //开始循环
-    createjs.Ticker.setFPS(30);
+    createjs.Ticker.framerate = 60;
     createjs.Ticker.on('tick', gameLoop);
-    /*let test = new Obstacle(resources['box'], game);
-    test.position3d = {x: 300, y: 100, z: 0};
-    con3d.addChild(test);*/
-/*    player.interactive = true;
-    player.buttonMode = true;
-    player.click = (e) => console.log(e));*/
-    // gameLoop();
 }
 
 
-function gameLoop() {
+function gameLoop(evt) {
     if(game.state === 'over') {
         game.state = 'ready';
         console.log(game.point);
     }
     game.update();
-    stage.update();
+    // 惊了，不传evt会导致内部spriteSheet的帧率与stage同步
+    stage.update(evt);
 }
 
