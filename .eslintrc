@@ -3,7 +3,8 @@
   "globals": {
     "define": true,                           //requirejs
     "require": true,                           //requirejs
-    "PIXI": true                           //PIXI
+    "PIXI": true,                           //PIXI
+    "createjs": true                           //createjs
   },
   "env": {
     //执行环境 浏览器

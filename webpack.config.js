@@ -19,6 +19,7 @@ module.exports = {
         loaders: [
             { test: /\.vue$/, loader: 'vue' },
             { test: /\.js$/, loader: 'babel', exclude: /node_modules/ },
+            { test: /\.json$/, loader: 'json' },
             // { test: /\.css$/, loader: 'style!css'},
             // { test: /\.less/, loader: 'style!css!autoprefixer!less'},
             { test: /\.css$/, loader: ExtractTextPlugin.extract('style-loader', 'css-loader')},
@@ -63,7 +64,8 @@ module.exports = {
     externals: {
         //'jquery': 'jQuery',
         PIXI: 'PIXI',
-        zepto: 'Zepto'
+        zepto: 'Zepto',
+        createjs: 'createjs'
     },
     // 开启source-map，webpack有多种source-map，在官网文档可以查到
     devtool: '#source-map'
