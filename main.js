@@ -1,22 +1,17 @@
 'use strict'
 
-//https://codereview.chromium.org/545973003/patch/260001/270026
-//http://www.trex-game.skipser.com/
 import 'style/main.less';
 
 // import 'myLib/rem.module.js';
 import 'createjs';
 import Loader from 'src/loadStorage.js';
-// import mini3d from 'src/mini3d.js';
 import Unit from 'src/unit.js';
 import manifest from 'src/loader_manifest.json';
 
-// let renderer = PIXI.autoDetectRenderer(1000, 360, {transparent: true});
-// let stage = new PIXI.Container();
 let resources;
 let stage = new createjs.StageGL('moe-stage');
 
-
+// Test Layer
 (function() {
     let stageTest = new createjs.Stage('moe-test');
     let text = new createjs.Text('0000', '20px Arial', '#ffffff');
@@ -27,25 +22,14 @@ let stage = new createjs.StageGL('moe-stage');
 })();
 
 let loader = new Loader(false);
-
-// let con3d = new mini3d.Container3d();
-// let con = new PIXI.Container;
-// let resources = PIXI.loader.resources;
 let game, player;
-
-// document.body.appendChild(renderer.view);
-// renderer.autoResize = true;
-// renderer.resize(window.innerWidth, window.innerHeight);
 
 loader.addEventListener('complete', init);
 loader.loadManifest(manifest);
+
 // for debug
 window.loader = loader;
 window.stage = stage;
-/*PIXI.loader
-    .add('qibi', './img/qibi.png')
-    .add('box', './img/box.png')
-    .load(init);*/
 
 class Player extends createjs.Sprite{
     constructor(texture) {
