@@ -12,6 +12,14 @@
         {
             "src": "jump.png",
             "id": "jump"
+        },
+        {
+            "src": "bk.jpg",
+            "id": "sky"
+        },
+        {
+            "src": "floor.jpg",
+            "id": "floor"
         }
     ]
 }

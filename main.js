@@ -7,6 +7,7 @@ import 'createjs';
 import Loader from 'src/loadStorage.js';
 import Unit from 'src/unit.js';
 import manifest from 'src/loader_manifest.json';
+import gameState from 'src/gameState.js';
 
 let resources;
 let stage = new createjs.StageGL('moe-stage');
@@ -22,7 +23,7 @@ let stage = new createjs.StageGL('moe-stage');
 })();
 
 let loader = new Loader(false);
-let game, player;
+let game, player, allBg;
 
 loader.addEventListener('complete', init);
 loader.loadManifest(manifest);
@@ -30,21 +31,21 @@ loader.loadManifest(manifest);
 // for debug
 window.loader = loader;
 window.stage = stage;
+window.gameState = gameState;
 
 class Player extends createjs.Sprite{
     constructor(texture) {
         let spriteSheet = new createjs.SpriteSheet(texture);
+        let config = gameState.staticConfig;
         super(spriteSheet, 'run');
-        this.width = texture.frames.width * 0.5;
-        this.height = texture.frames.height * 0.5;
-        this.hitW = 36;
-        this.htiH = 100;
-        this.scaleY = 0.5;
+        // 继承配置
+        Object.assign(this, config.player);
+        this.width = texture.frames.width * this.scaleY;
+        this.height = texture.frames.height * this.scaleY;
         this.vy = 0;
         this.regX = this.width;
-        this.scaleX = -0.5;
-        this.maxJump = 150;
         this.state = 'run';
+        this.y = config.baseline - this.height;
         this.oriY = this.y;
     }
 
@@ -56,6 +57,7 @@ class Player extends createjs.Sprite{
             this.stop();
         }
     }
+    // TODO: 可使用tween改写
     update() {
         let resY = this.y + this.vy;
         let offset = resY - this.oriY + this.maxJump;
@@ -80,20 +82,25 @@ class Player extends createjs.Sprite{
 }
 class Obstacle extends createjs.Bitmap {
     constructor(texture, game) {
+        let config = gameState.staticConfig;
         super(texture);
+        this.game = game;
         this.width = texture.width;
         this.height = texture.height;
-        this.x = stage.width + 500 * Math.random();
-        this.y = game.baseline - this.height;
-        if(game.level >= 0) {
-            Math.random() > 0.9 && (this.y -= 200);
+        this.x = config.stage.width + 800 * Math.random();
+        this.y = config.baseline - this.height;
+        if(gameState.global.level >= 1) {
+            // TODO: 0.9系数随level增加
+            Math.random() > 0.8 && (this.y += config.obstacle.y2);
         }
-        this.vx = game.globalSpeed || 1;
     }
     update() {
-        this.x -= this.vx;
-        if(this.x <= -100) {
-            stage.removeChild(this);
+        let game = this.game,
+            globalData = gameState.global,
+            vx = globalData.speed;
+        this.x -= vx;
+        if(this.x <= -this.width) {
+            game.stage.removeChild(this);
             game.obstacles.splice(game.obstacles.indexOf(this), 1);
         }
     }
@@ -104,13 +111,12 @@ class Game {
         // this.con3d = con3d;
         this.stage = stage;
         this.state = 'ready';
-        this.globalSpeed = 10;
-        this.baseline = stage.height - 60;
-        this.pointLine = 100;
+        // this.baseline = stage.height - 60;
+        this.pointLine = gameState.staticConfig.player.x;
         this.obstacles = [];
-        this.point = 0;
-        this.level = 0;
-        this.levelPoint = [10000, 15000, 30000, 40000];
+        // this.point = 0;
+        // this.level = 0;
+        this.levelPoint = [6000, 12000, 20000, 32000];
         this.pointText = new createjs.Text('0000', '20px Arial', '#ffffff');
         this.pointText.x = stage.width - 100;
         this.pointText.y = 20;
@@ -118,20 +124,24 @@ class Game {
     }
 
     play() {
-        var _this = this;
-        this.obstacles.forEach(function(item) {
+        let _this = this,
+            globalData = gameState.global;
+
+        _this.obstacles.forEach(function(item) {
             _this.stage.removeChild(item);
         });
-        this.obstacles = [];
-        this.point = 0;
-        this.level = 0;
-        this.pointText.text = '0000';
-        this.state = 'playing';
-        this.player.play();
+        _this.obstacles = [];
+        globalData.points = 0;
+        globalData.level = 0;
+        globalData.speed = 10;
+        _this.pointText.text = '0000';
+        _this.state = 'playing';
+        _this.player.play();
     }
 
     over() {
         this.state = 'over';
+        gameState.global.speed = 0;
         this.player.stop();
         console.log('over');
     }
@@ -140,27 +150,30 @@ class Game {
         if(this.state !== 'playing') {
             return;
         }
-        this.point += this.globalSpeed;
-        this.player.update();
+        let globalData = gameState.global;
+        globalData.points += globalData.speed;
+
         if(this.obstacles.length > 0) {
             let last = this.obstacles.slice(-1)[0];
-            if(this.pointLine + 300 - last.x >= 0) {
+            // 越过障碍时追加新障碍
+            if(this.pointLine - 100 - last.x >= 0) {
                 this.addObstacle();
-            }
-            if(last.x <= this.pointLine && this.addcout > this.point) {
-                this.point++;
             }
         }else {
             this.addObstacle();
         }
-        this.obstacles.forEach((item) => {
+
+        // 刷新子元素
+        this.player.update();
+        for(let item of this.obstacles) {
             item.update();
             if(Unit.hitTest(this.player, item)) {
                 this.over();
+                return;
             }
-        });
-        this.pointText.text = parseInt(this.point / 50);
-        // this.con3d.update();
+        }
+
+        this.pointText.text = parseInt(globalData.points / 50);
         this.levelUp();
     }
     //添加障碍物
@@ -171,34 +184,71 @@ class Game {
     }
 
     levelUp() {
-        this.levelPoint[this.level + 1] || this.levelPoint.push(this.levelPoint.slice(-1)[0] * 10);
-        if(this.point >= this.levelPoint[this.level]) {
-            this.level++;
+        let globalData = gameState.global;
+        this.levelPoint[globalData.level + 1] || this.levelPoint.push(this.levelPoint.slice(-1)[0] * 10);
+        if(globalData.points >= this.levelPoint[globalData.level]) {
+            globalData.level++;
         }
-        this.globalSpeed = 10 + 3 * this.level;
+        globalData.speed = 10 + 3 * globalData.level;
     }
+}
+
+// bk - container 只与globalSpeed有关
+// 循环背景
+class loopBg extends createjs.Container{
+    constructor(texture, stage, speedOffset) {
+        super();
+        this.bg_1 = new createjs.Bitmap(texture);
+        this.bg_2 = new createjs.Bitmap(texture);
+        this.addChild(this.bg_2);
+        this.addChild(this.bg_1);
+        this.curStage = stage;
+        this.speedOffset = speedOffset;
+        this.loopWidth = texture.width;
+        this.bg_2.x = this.loopWidth;
+    }
+
+    update() {
+        let speed = gameState.global.speed * this.speedOffset;
+        if(this.bg_1.x <= -this.loopWidth) {
+            this.bg_1.x = this.loopWidth + this.bg_2.x;
+        }else if(this.bg_2.x <= -this.loopWidth) {
+            this.bg_2.x = this.loopWidth + this.bg_1.x;
+        }
+        this.bg_1.x -= speed;
+        this.bg_2.x -= speed;
+    }
+}
+
+// 绘制背景
+function createBg(stage) {
+    let allBg = [];
+    let config = gameState.staticConfig;
+    let bg_sky = new loopBg(resources['sky'], stage, config.speedOffset.bg);
+    let bg_floor = new loopBg(resources['floor'], stage, config.speedOffset.floor);
+    bg_sky.width = stage.width;
+    bg_sky.height = stage.height;
+    bg_floor.y = config.baseline;
+    allBg.push(bg_sky);
+    allBg.push(bg_floor);
+    allBg.forEach((item) => {
+        stage.addChild(item);
+    });
+    return allBg;
 }
 
 function init() {
     resources = createjs.loadStorage.images;
     let key_space = Unit.keyboard(32);
-    player = new Player({
-        images: [resources['jump']],
-        frames: {
-            width: 210,
-            height: 260
-        },
-        animations: {
-            run: [0, 16]
-        },
-        framerate: 20
-    });
-    stage.width = stage.canvas.width;
-    stage.height = stage.canvas.height;
+    let config = gameState.staticConfig;
+    player = new Player(Object.assign({
+        images: [resources['jump']]
+    }, config.playerFrame));
+    stage.width = config.stage.width;
+    stage.height = config.stage.height;
+    allBg = createBg(stage);
     stage.addChild(player);
     game = new Game(stage, player);
-    player.y = game.baseline - player.height;
-    player.x = game.pointLine;
     key_space.press = () => player.jump();
     key_space.release = () => player.jump();
     game.play();
@@ -214,9 +264,12 @@ function init() {
 function gameLoop(evt) {
     if(game.state === 'over') {
         game.state = 'ready';
-        console.log(game.point);
+        console.log(gameState.global.points, parseInt(gameState.global.points / 50));
     }
     game.update();
+    allBg.forEach((item) => {
+        item.update();
+    });
     // 惊了，不传evt会导致内部spriteSheet的帧率与stage同步
     stage.update(evt);
 }

@@ -62,7 +62,7 @@
     "no-with": 2,                             //禁用with
     "space-infix-ops": 2,                     //操作符前后空格
     "valid-jsdoc": [2, {"requireParamDescription": true, "requireReturnDescription": true}],//jsdoc
-    "no-warning-comments": [2, { "terms": ["todo", "fixme", "any other term"], "location": "anywhere" }],//标记未写注释
+    //"no-warning-comments": [2, { "terms": ["todo", "fixme", "any other term"], "location": "anywhere" }],//标记未写注释
     "curly": 1                                //if、else、while、for代码块用{}包围
   }
 }
