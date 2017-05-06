@@ -8,7 +8,7 @@ const gameState = {
     },
     staticConfig: {
         stage: {
-            width: 1000,
+            width: 900,
             height: 360
         },
         // 视差速度偏差值
@@ -16,9 +16,9 @@ const gameState = {
             //player: 1,
             obstacle: 1,
             floor: 1,
-            winBehind: 1,
+            winBehind: 0.9,
             winFront: 1.1,
-            bg: 0.1,
+            bg: 0.05,
         },
         // 最大跳跃高度
         player: {
@@ -47,6 +47,6 @@ const gameState = {
 };
 let config = gameState.staticConfig;
 // 计算属性
-config.baseline = config.stage.height - 60;
+config.baseline = config.stage.height - 30;
 
 export default gameState;

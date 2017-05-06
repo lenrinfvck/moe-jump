@@ -10,17 +10,20 @@ import manifest from 'src/loader_manifest.json';
 import gameState from 'src/gameState.js';
 
 let resources;
-let stage = new createjs.StageGL('moe-stage');
+let stage = new createjs.Stage('moe-stage');
+let bkStage = new createjs.StageGL('moe-background');
+let floorStage = new createjs.Stage('moe-floor');
+floorStage.background = 'rgba(0, 0, 0, 0)';
 
 // Test Layer
-(function() {
+/*(function() {
     let stageTest = new createjs.Stage('moe-test');
     let text = new createjs.Text('0000', '20px Arial', '#ffffff');
     text.x = 100;
     text.y = 200;
     stageTest.addChild(text);
     createjs.Ticker.on('tick', stageTest);
-})();
+})();*/
 
 let loader = new Loader(false);
 let game, player, allBg;
@@ -169,10 +172,11 @@ class Game {
             item.update();
             if(Unit.hitTest(this.player, item)) {
                 this.over();
-                return;
             }
         }
-
+        if(this.state !== 'playing') {
+            return;
+        }
         this.pointText.text = parseInt(globalData.points / 50);
         this.levelUp();
     }
@@ -189,7 +193,7 @@ class Game {
         if(globalData.points >= this.levelPoint[globalData.level]) {
             globalData.level++;
         }
-        globalData.speed = 10 + 3 * globalData.level;
+        globalData.speed = 10 + 5 * globalData.level;
     }
 }
 
@@ -205,6 +209,7 @@ class loopBg extends createjs.Container{
         this.curStage = stage;
         this.speedOffset = speedOffset;
         this.loopWidth = texture.width;
+        this.loopHeight = texture.height;
         this.bg_2.x = this.loopWidth;
     }
 
@@ -219,22 +224,70 @@ class loopBg extends createjs.Container{
         this.bg_2.x -= speed;
     }
 }
+class winloopBg extends createjs.Container {
+    constructor(texture) {
+        super();
+        this.texture = texture;
+        this.creatWin();
+        // this.y = config.baseline - this.height;
+    }
+
+    creatWin() {
+        let texture = this.texture;
+        let globalData = gameState.global,
+            config = gameState.staticConfig;
+        let win = new createjs.Bitmap(texture);
+        win.width = texture.width;
+        win.height = texture.height;
+        win.x = config.stage.width + globalData.speed * 10 - 100;
+        this.addChild(win);
+    }
+    update() {
+        let globalData = gameState.global,
+            vx = globalData.speed;
+        let _this = this;
+        _this.children.forEach((item) => {
+            item.x -= vx;
+            if(item.x <= -item.width) {
+                _this.removeChild(item);
+                this.creatWin();
+            }
+        })
+        
+    }
+}
 
 // 绘制背景
 function createBg(stage) {
-    let allBg = [];
+    let allBg = [],
+        allFloor = [];
     let config = gameState.staticConfig;
     let bg_sky = new loopBg(resources['sky'], stage, config.speedOffset.bg);
-    let bg_floor = new loopBg(resources['floor'], stage, config.speedOffset.floor);
+    let bg_floor = new loopBg(resources['floor'], floorStage, config.speedOffset.floor);
+    let bg_win = new winloopBg(resources['win'], stage, config.speedOffset.winBehind);
+    let bg_win_shadow = new winloopBg(resources['win_s'], stage, config.speedOffset.winBehind);
     bg_sky.width = stage.width;
     bg_sky.height = stage.height;
-    bg_floor.y = config.baseline;
+
+    bg_floor.bg_1.y = stage.height / 2 - bg_floor.loopHeight / 2;
+    bg_floor.bg_2.y = stage.height / 2 - bg_floor.loopHeight / 2;
+    bg_win_shadow.y = stage.height / 2 - bg_floor.loopHeight / 2;
+    bg_floor.addChild(bg_win_shadow);
+
     allBg.push(bg_sky);
-    allBg.push(bg_floor);
+    allBg.push(bg_win);
+    allFloor.push(bg_floor);
     allBg.forEach((item) => {
-        stage.addChild(item);
+        bkStage.addChild(item);
     });
-    return allBg;
+    allFloor.forEach((item) => {
+        floorStage.addChild(item);
+    });
+    let floorDom = new createjs.DOMElement(document.querySelector('#bg-floor'));
+    stage.addChild(floorDom);
+    floorDom.y = 150;
+
+    return allBg.concat(allFloor);
 }
 
 function init() {
@@ -271,6 +324,8 @@ function gameLoop(evt) {
         item.update();
     });
     // 惊了，不传evt会导致内部spriteSheet的帧率与stage同步
+    floorStage.update(evt);
+    bkStage.update(evt);
     stage.update(evt);
 }
 

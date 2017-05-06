@@ -7,30 +7,47 @@
 </head>
     <style>
         body,div {margin: 0; padding: 0}
-        body,html {width: 1000px;}
-        canvas {position: absolute; display: block;background: transparent;}
+        body,html {width: 900px;}
+        canvas {position: absolute; display: block;background: rgba(0, 0, 0, 0);}
         .bg {
             overflow: hidden;
             position: absolute;
             left: 50%;
             top: 0;
             margin-left: -500px;
-            width: 1000px;
+            width: 900px;
             height: 360px;
             /* background: url('./img/skyBG.jpg') #000; */
             background: #aaa;
         }
+        #bg-floor {
+        }
         .ctrl-con {
             padding-top: 400px;
+        }
+        #bg-floor {
+            perspective: 400px;
+            perspective-origin: 50% 30px;
+            margin-left: -150px;
+            width: 1200px;
+            height: 360px;
+        }
+        #bg-floor canvas {
+            transform: rotateX(90deg);
+            transform-origin: 50% 50%;
         }
     </style>
 <body>
     <div class="bg">
-        <canvas id="moe-stage" width="1000px" height="360px"></canvas>
+        <canvas id="moe-background" width="900px" height="360px"></canvas>
+        <div id="bg-floor">
+            <canvas id="moe-floor" width="1200px" height="360px"></canvas>
+        </div>
+        <canvas id="moe-stage" width="900px" height="360px"></canvas>
     </div>
     <div class="ctrl-con">
         <button id="restart">Restart</button>
-        <canvas id="moe-test" width="300px" height="300px"></canvas>
+        <!-- <canvas id="moe-test" width="300px" height="300px"></canvas> -->
     </div>
     <!-- <script src="lib/pixi.js"></script>     -->
     <script src="lib/easeljs-NEXT.combined.js"></script>  

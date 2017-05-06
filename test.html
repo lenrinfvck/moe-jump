@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+  <style>
+    #exampleScene {
+        position: absolute;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="exampleScene" width="1920" height="1080"></canvas>
+  <script>
+    var aspectRatio = 1.777777777777778;
+    var canvasHeight, canvasWidth, canvasTop, canvasLeft;
+    var graphicsLoader;
+    var stage, frameTick;
+
+
+    var calculateSize = function() {
+      if ((window.innerWidth / window.innerHeight) >= aspectRatio) {
+        canvasHeight = window.innerHeight;
+        canvasWidth = canvasHeight * aspectRatio;
+        canvasTop = 0;
+        canvasLeft = (window.innerWidth - canvasWidth) / 2;
+      } else {
+        canvasWidth = window.innerWidth;
+        canvasHeight = canvasWidth / aspectRatio;
+        canvasLeft = 0;
+        canvasTop = (window.innerHeight - canvasHeight) / 2;
+      }
+
+      var gameCanvas = document.getElementById('exampleScene');
+      gameCanvas.style.width = canvasWidth + "px";
+      gameCanvas.style.height = canvasHeight + "px";
+      gameCanvas.style.top = canvasTop + "px";
+      gameCanvas.style.left = canvasLeft + "px";
+    };
+
+
+    //load graphics
+    graphicsManifet = [
+        {id: "flatness", src: "https://i.imgur.com/6E1NKLa.png"},
+        {id: "card", src: "https://i.imgur.com/CXhpG1X.png"},
+    ];
+
+    graphicsLoader = new createjs.LoadQueue(true);
+    graphicsLoader.loadManifest(graphicsManifet);
+    graphicsLoader.on("complete", function() {
+        initScene();
+    }, this);
+
+
+    function initScene() {
+      
+      stage = new createjs.Stage("exampleScene");
+      createjs.Ticker.on("tick", frameTick);
+      
+      //draw
+      var flatness = new createjs.Bitmap(graphicsLoader.getResult("flatness"));
+          flatness.x = 200;
+      
+      var card = new createjs.Bitmap(graphicsLoader.getResult("card"));
+          card.alpha = 0;
+      window.card = card;
+      
+      stage.addChild(
+        flatness,
+        card
+      );
+      
+      var animationTime = intervalTime = 800;
+     
+      
+      createjs.Tween.get()
+        .wait(0)
+        .call(function() {
+          movePerspective(card, 280, 10, 0);
+          card.alpha = 1;
+        })
+        .wait(intervalTime)
+        .call(function() {
+          movePerspective(card, 1530, 10, animationTime);
+          card.alpha = 1;
+        })
+        .wait(intervalTime)
+        .call(function() {
+          movePerspective(card, 1570, 680, animationTime);
+          card.alpha = 1;
+        })
+        .wait(intervalTime)
+        .call(function() {
+          movePerspective(card, 230, 680, animationTime);
+          card.alpha = 1;
+        })
+        .wait(intervalTime)
+        .call(function() {
+          movePerspective(card, 280, 10, animationTime);
+          card.alpha = 1;
+        }).loop = true;
+       
+      
+      
+    };
+
+
+    function frameTick(e) {
+      stage.update(e);
+    }
+
+    movePerspective = function(object, x, y, time) {
+        typeof time != "number" ? time = 1000 : "";
+        var scales = {
+            y: y,
+            scaleX : 0.887073905 + y*0.000142045,   //  this numbers I calculated depending
+            scaleY : 0.761221624 + y*0.000284091    //  on perspective angle of flatness board
+        };
+        var skAspect = 0.00673453853 - y * 0.000000654928977;
+        var cardSkewX = (6.5991 - skAspect * x);
+        var pointskew = {
+            x: x,
+            skewX: cardSkewX
+        };
+
+        createjs.Tween.get(object).to({
+            x: pointskew.x,
+            y: scales.y,
+            skewX: pointskew.skewX,
+            scaleX: scales.scaleX,
+            scaleY: scales.scaleY
+        }, time, createjs.Ease.getPowInOut(3));
+    };
+
+    window.onload = function() {
+      window.addEventListener("resize", function() {
+        calculateSize();
+      });
+    };
+
+    //set framerate
+    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
+    createjs.Ticker.framerate = 60;
+
+    $(function() {
+       calculateSize();
+    });
+
+  </script>
+</body>
+</html>
+
+
+
+    
+
+
+
+
