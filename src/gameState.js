@@ -16,9 +16,9 @@ const gameState = {
             //player: 1,
             obstacle: 1,
             floor: 1,
-            winBehind: 0.9,
-            winFront: 1.1,
-            bg: 0.05,
+            winBehind: 0.795,
+            winFront: 1.05,
+            bg: 0.03,
         },
         // 最大跳跃高度
         player: {

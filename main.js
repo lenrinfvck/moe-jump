@@ -12,7 +12,7 @@ import gameState from 'src/gameState.js';
 let resources;
 let stage = new createjs.Stage('moe-stage');
 let bkStage = new createjs.StageGL('moe-background');
-let floorStage = new createjs.Stage('moe-floor');
+let floorStage = new createjs.StageGL('moe-floor');
 floorStage.background = 'rgba(0, 0, 0, 0)';
 
 // Test Layer
@@ -27,6 +27,9 @@ floorStage.background = 'rgba(0, 0, 0, 0)';
 
 let loader = new Loader(false);
 let game, player, allBg;
+
+let justGo = false;
+let debug = false;
 
 loader.addEventListener('complete', init);
 loader.loadManifest(manifest);
@@ -50,6 +53,15 @@ class Player extends createjs.Sprite{
         this.state = 'run';
         this.y = config.baseline - this.height;
         this.oriY = this.y;
+        // player - shadow
+        this.shadow = this.clone();
+        this.shadow.maxJump = config.player.maxJump;
+        this.shadow.scaleY = -this.scaleY;
+        this.shadow.x = config.player.x + 150;
+        this.shadow.y = config.baseline - this.height / 2 - 20;
+        this.shadow.vy = 0;
+        this.shadow.alpha = 0.8;
+        this.shadow.shadow = new createjs.Shadow('rgba(0,0,0,0.5)', 0, 0, 10);
     }
 
     jump() {
@@ -58,11 +70,16 @@ class Player extends createjs.Sprite{
             this.vy = -this.maxJump / 10;
             this.oriY = this.y;
             this.stop();
+
+            this.shadow.state = 'jumpUp';
+            this.shadow.vy = this.maxJump / 10;
+            this.shadow.oriY = this.shadow.y;
+            this.shadow.stop();
         }
     }
     // TODO: 可使用tween改写
     update() {
-        let resY = this.y + this.vy;
+        /*let resY = this.y + this.vy;
         let offset = resY - this.oriY + this.maxJump;
         if(this.vy < 0) {
             this.vy = -offset / 10;
@@ -80,7 +97,52 @@ class Player extends createjs.Sprite{
             this.vy = 0;
             resY = this.oriY;
         }
-        this.y = resY + this.vy;
+        this.y = resY + this.vy;*/
+        let _this = this;
+        posRes(this);
+        posRes2(this.shadow, true);
+        function posRes(player, reverse) {
+            let resY = player.y + player.vy;
+            let offset = reverse ? player.oriY - resY + player.maxJump : resY - player.oriY + player.maxJump;
+            if(player.vy < 0) {
+                player.vy = -offset / 10;
+                player.vy < -1 || (player.vy = -1);
+            }else if(player.vy > 0) {
+                player.vy = offset / 10;
+                player.vy > 1 || (player.vy = 1);
+            }
+            if(player.state === 'jumpUp' && reverse ? resY >= player.oriY + player.maxJump : resY <= player.oriY - player.maxJump) {
+                player.state = 'jumpDown';
+                player.vy = -player.vy;
+                player.play();
+            }else if(player.state === 'jumpDown' && reverse ? resY <= player.oriY : resY >= player.oriY) {
+                player.state = 'run';
+                player.vy = 0;
+                resY = player.oriY;
+            }
+            player.y = resY + player.vy;
+        }
+        function posRes2(player) {
+            let resY = player.y + player.vy;
+            let offset = player.oriY - resY + player.maxJump;
+            if(player.vy < 0) {
+                player.vy = -offset / 10;
+                player.vy < -1 || (player.vy = -1);
+            }else if(player.vy > 0) {
+                player.vy = offset / 10;
+                player.vy > 1 || (player.vy = 1);
+            }
+            if(player.state === 'jumpUp' && resY >= player.oriY + player.maxJump) {
+                player.state = 'jumpDown';
+                player.vy = -player.vy;
+                player.play();
+            }else if(player.state === 'jumpDown' && resY <= player.oriY) {
+                player.state = 'run';
+                player.vy = 0;
+                resY = player.oriY;
+            }
+            player.y = resY + player.vy;
+        }
     }
 }
 class Obstacle extends createjs.Bitmap {
@@ -103,7 +165,7 @@ class Obstacle extends createjs.Bitmap {
             vx = globalData.speed;
         this.x -= vx;
         if(this.x <= -this.width) {
-            game.stage.removeChild(this);
+            game.obCon.removeChild(this);
             game.obstacles.splice(game.obstacles.indexOf(this), 1);
         }
     }
@@ -124,6 +186,8 @@ class Game {
         this.pointText.x = stage.width - 100;
         this.pointText.y = 20;
         this.stage.addChild(this.pointText);
+        this.obCon = new createjs.Container();
+        this.stage.addChild(this.obCon);
     }
 
     play() {
@@ -131,7 +195,7 @@ class Game {
             globalData = gameState.global;
 
         _this.obstacles.forEach(function(item) {
-            _this.stage.removeChild(item);
+            _this.obCon.removeChild(item);
         });
         _this.obstacles = [];
         globalData.points = 0;
@@ -146,6 +210,7 @@ class Game {
         this.state = 'over';
         gameState.global.speed = 0;
         this.player.stop();
+        this.player.shadow.stop();
         console.log('over');
     }
 
@@ -183,7 +248,7 @@ class Game {
     //添加障碍物
     addObstacle() {
         let cur = new Obstacle(resources['box'], this);
-        this.stage.addChild(cur);
+        this.obCon.addChild(cur);
         this.obstacles.push(cur);
     }
 
@@ -225,9 +290,11 @@ class loopBg extends createjs.Container{
     }
 }
 class winloopBg extends createjs.Container {
-    constructor(texture) {
+    constructor(texture, stage, speedOffset) {
         super();
         this.texture = texture;
+        this.speedOffset = speedOffset || 1;
+        this.curStage = stage;
         this.creatWin();
         // this.y = config.baseline - this.height;
     }
@@ -237,14 +304,20 @@ class winloopBg extends createjs.Container {
         let globalData = gameState.global,
             config = gameState.staticConfig;
         let win = new createjs.Bitmap(texture);
+        // win.scaleX = this.speedOffset;
+        // win.scaleY = this.speedOffset;
+        if(this.curStage.width === config.stage.width) {
+            win.scaleX = 0.78;
+            win.scaleY = 0.78;
+        }
         win.width = texture.width;
         win.height = texture.height;
-        win.x = config.stage.width + globalData.speed * 10 - 100;
+        win.x = this.curStage.width;
         this.addChild(win);
     }
     update() {
         let globalData = gameState.global,
-            vx = globalData.speed;
+            vx = globalData.speed * this.speedOffset;
         let _this = this;
         _this.children.forEach((item) => {
             item.x -= vx;
@@ -265,18 +338,23 @@ function createBg(stage) {
     let bg_sky = new loopBg(resources['sky'], stage, config.speedOffset.bg);
     let bg_floor = new loopBg(resources['floor'], floorStage, config.speedOffset.floor);
     let bg_win = new winloopBg(resources['win'], stage, config.speedOffset.winBehind);
-    let bg_win_shadow = new winloopBg(resources['win_s'], stage, config.speedOffset.winBehind);
+    let bg_win_shadow = new winloopBg(resources['win_s'], floorStage, config.speedOffset.floor);
+    let bg_win_front = new winloopBg(resources['win_s'], stage, config.speedOffset.floor);
     bg_sky.width = stage.width;
     bg_sky.height = stage.height;
-
-    bg_floor.bg_1.y = stage.height / 2 - bg_floor.loopHeight / 2;
+    bg_win_shadow.alpha = 0.8;
+    /*bg_floor.bg_1.y = stage.height / 2 - bg_floor.loopHeight / 2;
     bg_floor.bg_2.y = stage.height / 2 - bg_floor.loopHeight / 2;
-    bg_win_shadow.y = stage.height / 2 - bg_floor.loopHeight / 2;
+    bg_win_shadow.y = stage.height / 2 - bg_floor.loopHeight / 2;*/
     bg_floor.addChild(bg_win_shadow);
-
+    // bg_floor.scaleX = 0.8;
+    // bg_floor.scaleY = 0.8;
+    // bg_floor.addChild(player.clone());
     allBg.push(bg_sky);
     allBg.push(bg_win);
+    allBg.push(bg_win_front);
     allFloor.push(bg_floor);
+    allFloor.push(bg_win_shadow);
     allBg.forEach((item) => {
         bkStage.addChild(item);
     });
@@ -285,7 +363,12 @@ function createBg(stage) {
     });
     let floorDom = new createjs.DOMElement(document.querySelector('#bg-floor'));
     stage.addChild(floorDom);
-    floorDom.y = 150;
+    bg_win_front.scaleX = 1.5;
+    bg_win_front.scaleY = 1.5;
+    stage.addChild(bg_win_front);
+    floorDom.y = 200;
+    bg_win.x = 30;
+    bg_win.y = -460;
 
     return allBg.concat(allFloor);
 }
@@ -294,14 +377,18 @@ function init() {
     resources = createjs.loadStorage.images;
     let key_space = Unit.keyboard(32);
     let config = gameState.staticConfig;
+    floorStage.width = 1200;
+    floorStage.height = 360;
     player = new Player(Object.assign({
         images: [resources['jump']]
     }, config.playerFrame));
     stage.width = config.stage.width;
     stage.height = config.stage.height;
+    game = new Game(stage, player);
     allBg = createBg(stage);
     stage.addChild(player);
-    game = new Game(stage, player);
+    floorStage.addChild(player.shadow);
+
     key_space.press = () => player.jump();
     key_space.release = () => player.jump();
     game.play();
@@ -311,10 +398,22 @@ function init() {
     //开始循环
     createjs.Ticker.framerate = 60;
     createjs.Ticker.on('tick', gameLoop);
+
+    //逐帧测试
+    let key_next = Unit.keyboard(39);
+    // let key_pre= Unit.keyboard(37);
+    key_next.press = () => {
+        justGo = true;
+    }
 }
 
 
 function gameLoop(evt) {
+    if(debug && !justGo) {
+        return;
+    }else {
+        justGo = false;
+    }
     if(game.state === 'over') {
         game.state = 'ready';
         console.log(gameState.global.points, parseInt(gameState.global.points / 50));
