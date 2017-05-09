@@ -6,6 +6,14 @@
             "id": "box"
         },
         {
+            "src": "dango_1.png",
+            "id": "dango_1"
+        },
+        {
+            "src": "dango_2.png",
+            "id": "dango_2"
+        },
+        {
             "src": "jump.png",
             "id": "jump"
         },
@@ -24,6 +32,10 @@
         {
             "src": "win_s.png",
             "id": "win_s"
+        },
+        {
+            "src": "win_front.png",
+            "id": "win_front"
         }
     ]
 }

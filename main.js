@@ -31,7 +31,16 @@ let game, player, allBg;
 let justGo = false;
 let debug = false;
 
-loader.addEventListener('complete', init);
+loader.addEventListener('progress', function(evt) {
+    document.querySelector('.fullwidth .expand').style.width = evt.progress * 100 + '%';
+});
+loader.addEventListener('complete', function() {
+    init();
+    setTimeout(() => {
+        document.querySelector('.progress').style.opacity = 0;
+        document.querySelector('.ctrl-con').style.display = 'block';
+    }, 500);
+});
 loader.loadManifest(manifest);
 
 // for debug
@@ -98,7 +107,6 @@ class Player extends createjs.Sprite{
             resY = this.oriY;
         }
         this.y = resY + this.vy;*/
-        let _this = this;
         posRes(this);
         posRes2(this.shadow, true);
         function posRes(player, reverse) {
@@ -150,10 +158,14 @@ class Obstacle extends createjs.Bitmap {
         let config = gameState.staticConfig;
         super(texture);
         this.game = game;
-        this.width = texture.width;
-        this.height = texture.height;
+        this.scaleX = 60 / texture.width;
+        this.scaleY = 60 / texture.height;
+        this.width = texture.width * this.scaleX;
+        this.height = texture.height * this.scaleY;
         this.x = config.stage.width + 800 * Math.random();
-        this.y = config.baseline - this.height;
+        this.y = config.baseline - this.height + 10;
+        this.alpha = 1;
+        this.shadow = new createjs.Shadow('rbga(0, 0, 0, 1)', 10, 10, 5);
         if(gameState.global.level >= 1) {
             // TODO: 0.9系数随level增加
             Math.random() > 0.8 && (this.y += config.obstacle.y2);
@@ -182,7 +194,7 @@ class Game {
         // this.point = 0;
         // this.level = 0;
         this.levelPoint = [6000, 12000, 20000, 32000];
-        this.pointText = new createjs.Text('0000', '20px Arial', '#ffffff');
+        this.pointText = new createjs.Text('0', '20px Arial', '#ffffff');
         this.pointText.x = stage.width - 100;
         this.pointText.y = 20;
         this.stage.addChild(this.pointText);
@@ -204,6 +216,7 @@ class Game {
         _this.pointText.text = '0000';
         _this.state = 'playing';
         _this.player.play();
+        _this.player.shadow.play();
     }
 
     over() {
@@ -247,7 +260,10 @@ class Game {
     }
     //添加障碍物
     addObstacle() {
-        let cur = new Obstacle(resources['box'], this);
+        if(this.state !== 'playing') {
+            return;
+        }
+        let cur = new Obstacle(resources['dango_1'], this);
         this.obCon.addChild(cur);
         this.obstacles.push(cur);
     }
@@ -301,8 +317,7 @@ class winloopBg extends createjs.Container {
 
     creatWin() {
         let texture = this.texture;
-        let globalData = gameState.global,
-            config = gameState.staticConfig;
+        let config = gameState.staticConfig;
         let win = new createjs.Bitmap(texture);
         // win.scaleX = this.speedOffset;
         // win.scaleY = this.speedOffset;
@@ -339,9 +354,10 @@ function createBg(stage) {
     let bg_floor = new loopBg(resources['floor'], floorStage, config.speedOffset.floor);
     let bg_win = new winloopBg(resources['win'], stage, config.speedOffset.winBehind);
     let bg_win_shadow = new winloopBg(resources['win_s'], floorStage, config.speedOffset.floor);
-    let bg_win_front = new winloopBg(resources['win_s'], stage, config.speedOffset.floor);
+    let bg_win_front = new winloopBg(resources['win_front'], stage, config.speedOffset.floor);
     bg_sky.width = stage.width;
     bg_sky.height = stage.height;
+    bkStage.compositeOperation = 'lighter';
     bg_win_shadow.alpha = 0.8;
     /*bg_floor.bg_1.y = stage.height / 2 - bg_floor.loopHeight / 2;
     bg_floor.bg_2.y = stage.height / 2 - bg_floor.loopHeight / 2;
@@ -363,6 +379,7 @@ function createBg(stage) {
     });
     let floorDom = new createjs.DOMElement(document.querySelector('#bg-floor'));
     stage.addChild(floorDom);
+    bg_win_front.y = -200;
     bg_win_front.scaleX = 1.5;
     bg_win_front.scaleY = 1.5;
     stage.addChild(bg_win_front);
@@ -389,12 +406,22 @@ function init() {
     stage.addChild(player);
     floorStage.addChild(player.shadow);
 
-    key_space.press = () => player.jump();
+    key_space.press = () => {
+        if(game.state === 'ready') {
+            game.play();
+        }
+        player.jump()
+    };
     key_space.release = () => player.jump();
-    game.play();
-    document.querySelector('#restart').addEventListener('click', function() {
+    // phone
+    document.querySelector('body').addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        player.jump();
+    });
+    // game.play();
+    /*document.querySelector('#restart').addEventListener('click', function() {
         game.play();
-    })
+    })*/
     //开始循环
     createjs.Ticker.framerate = 60;
     createjs.Ticker.on('tick', gameLoop);
@@ -415,7 +442,7 @@ function gameLoop(evt) {
         justGo = false;
     }
     if(game.state === 'over') {
-        game.state = 'ready';
+        // game.state = 'ready';
         console.log(gameState.global.points, parseInt(gameState.global.points / 50));
     }
     game.update();
