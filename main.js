@@ -416,6 +416,9 @@ function init() {
     // phone
     document.querySelector('body').addEventListener('touchstart', function(e) {
         e.preventDefault();
+        if(game.state === 'ready') {
+            game.play();
+        }
         player.jump();
     });
     // game.play();
