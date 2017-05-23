@@ -2,10 +2,6 @@
     "path": "img/",
     "manifest": [
         {
-            "src": "box.png",
-            "id": "box"
-        },
-        {
             "src": "dango_1.png",
             "id": "dango_1"
         },

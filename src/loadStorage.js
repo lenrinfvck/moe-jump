@@ -2,8 +2,8 @@ import 'createjs';
 
 /**
  * 创建资源库
- * @param  {Num} oriArguments 原createjs.LoadQueue的参数
- * @return {Obj} 返回createjs.LoadQueue的结果，即loader
+ * @param  {Num} [oriArguments 原createjs.LoadQueue的参数]
+ * @return {Obj} [返回createjs.LoadQueue的结果，即loader]
  */
 class Loader extends createjs.LoadQueue {
     constructor(oriArguments) {
