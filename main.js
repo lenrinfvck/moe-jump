@@ -14,16 +14,18 @@ import Game from 'src/game.js';
 import {LoopBg, LoopBgWin} from 'src/loopBg.js';
 
 let resources;
-let stage = new createjs.Stage('moe-stage', {transparent: true, antialias: true});
-let bkStage = new createjs.StageGL('moe-background');
-let floorStage = new createjs.StageGL('moe-floor');
+const stage = new createjs.Stage('moe-stage', {transparent: true, antialias: true});
+const bkStage = new createjs.StageGL('moe-background');
+const floorStage = new createjs.StageGL('moe-floor');
 
-let loader = new Loader(false);
+const loader = new Loader(false);
 const $ = (selector) => document.querySelector(selector);
-let game, player, allBg;
+let game, 
+    player, 
+    allBg;
 
-let justGo = false;
-let debug = false;
+let justGo = false,
+    debug = false;
 
 // 进度条加载
 loader.addEventListener('progress', function(evt) {
